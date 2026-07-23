@@ -71,3 +71,4 @@ Frontend runs at `http://localhost:5173`.
 - Deleting a sale restores the sold quantity
 - Alerts are triggered when inventory is below `10`
 - Demand prediction uses a 3-entry moving average from recent sales
+..........................
