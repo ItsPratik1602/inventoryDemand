@@ -118,7 +118,11 @@ export const getDashboardSummary = async (query = {}) => {
     prisma.product.findMany({
       where: Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {},
       include: {
-        inventory: true
+        inventory: true,
+        sales: {
+          orderBy: { createdAt: "desc" },
+          take: 3
+        }
       }
     }),
     prisma.inventory.findMany(), // Inventory table doesn't have createdAt field
@@ -280,7 +284,9 @@ export const getDashboardSummary = async (query = {}) => {
   const criticalDemandAlerts = products
     .map((product) => {
       const currentStock = product.inventory?.quantity ?? 0;
-      const demandPrediction = calculateMovingAverage(product.sales || []);
+      const demandPrediction = calculateMovingAverage(
+        (product.sales || []).map((sale) => sale.quantity)
+      );
       return {
         id: product.id,
         name: product.name,
@@ -338,7 +344,8 @@ const buildAlerts = async () => {
         include: {
           category: true,
           sales: {
-            orderBy: { createdAt: "desc" }
+            orderBy: { createdAt: "desc" },
+            take: 3
           }
         }
       }
@@ -354,7 +361,9 @@ const buildAlerts = async () => {
       category: item.product.category?.name || "Uncategorized",
       quantity: item.quantity,
       threshold: item.product.reorderLevel || LOW_STOCK_THRESHOLD,
-      demandPrediction: calculateMovingAverage(item.product.sales || [])
+      demandPrediction: calculateMovingAverage(
+        (item.product.sales || []).map((sale) => sale.quantity)
+      )
     }));
 };
 
