@@ -113,7 +113,7 @@ const DashboardPage = () => {
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link
-            to="/products"
+            to="/admin/products"
             className="flex items-center justify-between p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition"
           >
             <span className="font-medium text-blue-900">Manage Products</span>
@@ -121,7 +121,7 @@ const DashboardPage = () => {
           </Link>
 
           <Link
-            to="/orders"
+            to="/admin/orders"
             className="flex items-center justify-between p-4 bg-green-50 rounded-lg hover:bg-green-100 transition"
           >
             <span className="font-medium text-green-900">View Orders</span>
@@ -129,7 +129,7 @@ const DashboardPage = () => {
           </Link>
 
           <Link
-            to="/categories"
+            to="/admin/categories"
             className="flex items-center justify-between p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition"
           >
             <span className="font-medium text-purple-900">Categories</span>
@@ -137,7 +137,7 @@ const DashboardPage = () => {
           </Link>
 
           <Link
-            to="/coupons"
+            to="/admin/coupons"
             className="flex items-center justify-between p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition"
           >
             <span className="font-medium text-orange-900">Coupons</span>
@@ -150,7 +150,7 @@ const DashboardPage = () => {
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
-          <Link to="/orders" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+          <Link to="/admin/orders" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
             View All
           </Link>
         </div>

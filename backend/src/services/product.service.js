@@ -23,7 +23,9 @@ const formatProduct = (product) => {
       createdAt: product.createdAt,
       inventory: product.inventory || null,
       images: product.images || [],
-      demandPrediction: product.sales && Array.isArray(product.sales) ? calculateMovingAverage(product.sales) : null
+      demandPrediction: Array.isArray(product.sales)
+        ? calculateMovingAverage(product.sales.map((sale) => sale.quantity))
+        : null
     };
   } catch (error) {
     console.error('Error in formatProduct:', error);
@@ -168,7 +170,8 @@ export const getProducts = async (userId, query = {}) => {
         category: true,
         inventory: true,
         sales: {
-          orderBy: { createdAt: "desc" }
+          orderBy: { createdAt: "desc" },
+          take: 3
         }
       }
     })
@@ -361,7 +364,8 @@ export const getProductRecords = async () => {
       category: true,
       inventory: true,
       sales: {
-        orderBy: { createdAt: "desc" }
+        orderBy: { createdAt: "desc" },
+        take: 3
       }
     }
   });
@@ -447,7 +451,10 @@ export const createProduct = async ({
     include: {
       category: true,
       inventory: true,
-      sales: true
+      sales: {
+        orderBy: { createdAt: "desc" },
+        take: 3
+      }
     }
   });
 
@@ -486,7 +493,10 @@ export const updateProduct = async (
     include: {
       category: true,
       inventory: true,
-      sales: true
+      sales: {
+        orderBy: { createdAt: "desc" },
+        take: 3
+      }
     }
   });
 
@@ -634,21 +644,17 @@ export const ensureProduct = async (id) => {
   return product;
 };
 
-function calculateMovingAverage(data = [], windowSize = 3) {
-  if (!Array.isArray(data) || data.length === 0) return [];
+function calculateMovingAverage(quantities = []) {
+  if (!Array.isArray(quantities) || quantities.length === 0) return 0;
 
-  const result = [];
+  const recentQuantities = quantities
+    .slice(0, 3)
+    .map(Number)
+    .filter(Number.isFinite);
 
-  for (let i = 0; i < data.length; i++) {
-    const start = Math.max(0, i - windowSize + 1);
-    const subset = data.slice(start, i + 1);
+  if (recentQuantities.length === 0) return 0;
 
-    const avg = subset.reduce((sum, val) => sum + (val || 0), 0) / subset.length;
-
-    result.push(avg);
-  }
-
-  return result;
+  return recentQuantities.reduce((sum, quantity) => sum + quantity, 0) / recentQuantities.length;
 }
 
 export const saveProductImages = async (productId, imageUrls) => {
