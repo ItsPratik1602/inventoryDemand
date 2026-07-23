@@ -1,0 +1,250 @@
+import { Link} from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useToast } from "../context/ToastContext.jsx";
+import Button from "./Button.jsx";
+import api from "../lib/api.js";
+
+function ProductCard({ product }) {
+  const { showToast } = useToast();
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [imageSrc, setImageSrc] = useState(null);
+
+  // Debug: Log product data
+  console.log('ProductCard - Product data:', product);
+  console.log('ProductCard - Product images:', product.images);
+  console.log('ProductCard - Primary image:', product.images?.find(img => img.isPrimary));
+
+  // Load base64 image if needed
+  useEffect(() => {
+    const loadImage = async () => {
+      const primaryImage = product.images?.find(img => img.isPrimary);
+      const firstImage = product.images?.[0];
+      const image = primaryImage || firstImage;
+      
+      if (image?.url?.startsWith('/api/v1/images/')) {
+        try {
+          const filename = image.url.split('/').pop();
+          const response = await api.get(`/images/base64/products/${filename}`);
+          if (response.data.success) {
+            setImageSrc(response.data.dataUrl);
+            console.log('ProductCard - Loaded base64 image:', filename);
+          }
+        } catch (error) {
+          console.error('ProductCard - Error loading base64 image:', error);
+          setImageSrc('/defaultProduct.png');
+        }
+      } else {
+        setImageSrc(null); // Use regular image handling
+      }
+    };
+    
+    loadImage();
+  }, [product.images]);
+
+  const getStockStatus = () => {
+    // Check both possible stock fields
+    const stock = product.stockQuantity || product.stock || product.inventory?.quantity || 0;
+    const lowStockThreshold = 5;
+    
+    // Debug logging (remove in production)
+    if (stock === 0) {
+      console.log('Product out of stock:', { 
+        productId: product.id, 
+        productName: product.name,
+        stockQuantity: product.stockQuantity,
+        stock: product.stock,
+        inventory: product.inventory
+      });
+    }
+    
+    if (stock === 0) {
+      return { status: 'Out of Stock', color: 'red', bgColor: 'bg-red-100', textColor: 'text-red-600' };
+    } else if (stock <= lowStockThreshold) {
+      return { status: 'Low Stock', color: 'amber', bgColor: 'bg-amber-50', textColor: 'text-amber-700' };
+    } else {
+      return { status: 'In Stock', color: 'green', bgColor: 'bg-green-50', textColor: 'text-green-700' };
+    }
+  };
+
+  const stockStatus = getStockStatus();
+
+  const handleAddToCart = async () => {
+    const stock = product.stockQuantity || product.stock || product.inventory?.quantity || 0;
+    if (stock <= 0) return;
+    
+    setIsAddingToCart(true);
+    try {
+      await api.post("/cart", {
+        productId: product.id,
+        quantity: 1
+      });
+
+      showToast({ type: "success", message: "Added to cart successfully!" });
+      // Trigger cart count update event
+      window.dispatchEvent(new Event('cartUpdated'));
+    } catch (error) {
+      showToast({ type: "error", message: "Failed to add to cart" });
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
+  const handleWishlistToggle = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+      if (isWishlisted) {
+        await api.delete(`/wishlist/${product.id}`);
+        showToast({ type: "success", message: "Removed from wishlist" });
+        setIsWishlisted(false);
+      } else {
+        await api.post("/wishlist", {
+          productId: product.id
+        });
+        showToast({ type: "success", message: "Added to wishlist" });
+        setIsWishlisted(true);
+      }
+      // Trigger wishlist count update event
+      window.dispatchEvent(new Event('wishlistUpdated'));
+    } catch (error) {
+      showToast({ type: "error", message: "Failed to update wishlist" });
+    }
+  };
+
+  const stock = product.stockQuantity || product.stock || product.inventory?.quantity || 0;
+  const isOutOfStock = stock <= 0;
+
+  return (
+    <div className={`bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group flex flex-col h-full ${
+      isOutOfStock ? 'opacity-50' : ''
+    }`}>
+      {/* Product Image Container */}
+      <div className="relative h-[200px] overflow-hidden bg-gray-100">
+        <Link to={`/product/${product.id}`}>
+          <img
+            src={imageSrc || (() => {
+                const primaryImage = product.images?.find(img => img.isPrimary);
+                const firstImage = product.images?.[0];
+                const image = primaryImage || firstImage;
+                
+                console.log('ProductCard - Selected image:', image);
+                
+                let finalUrl;
+                if (image?.url) {
+                  // If it's already a full URL (starts with http), use as-is
+                  if (image.url.startsWith('http')) {
+                    finalUrl = image.url;
+                  } else {
+                    // If it's a local path, add backend URL
+                    finalUrl = `http://localhost:5000${image.url}`;
+                  }
+                } else {
+                  // Fallback to default image
+                  finalUrl = '/defaultProduct.png';
+                }
+                
+                console.log('ProductCard - Final image URL:', finalUrl);
+                return finalUrl;
+              })()
+            }
+            alt={product.name}
+            onError={(e) => {
+              console.log(`ProductCard image failed to load: ${e.target.src}`);
+              if (e.target.src !== '/defaultProduct.png') {
+                e.target.src = '/defaultProduct.png';
+              }
+            }}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        </Link>
+        
+        {/* Wishlist Button */}
+        <button
+          onClick={handleWishlistToggle}
+          className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-md"
+        >
+          <svg 
+            className={`w-5 h-5 transition-colors ${isWishlisted ? 'text-red-500 fill-current' : 'text-gray-400'}`} 
+            fill={isWishlisted ? "currentColor" : "none"}
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+        </button>
+        
+        {/* Stock Badge */}
+        <div className={`absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-medium ${stockStatus.bgColor} ${stockStatus.textColor}`}>
+          {stockStatus.status}
+        </div>
+      </div>
+      
+      {/* Product Info */}
+      <div className="p-4 flex-1 flex flex-col">
+        {/* Category */}
+        {product.category && (
+          <div className="text-xs text-gray-500 mb-1 uppercase tracking-wide">
+            {product.category?.name || 'Uncategorized'}
+          </div>
+        )}
+        
+        {/* Title */}
+        <Link to={`/product/${product.id}`}>
+          <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 mb-2 min-h-[3rem]">
+            {product.name}
+          </h3>
+        </Link>
+        
+        {/* Rating Placeholder */}
+        <div className="flex items-center mb-2">
+          <div className="flex text-yellow-400">
+            {[...Array(5)].map((_, i) => (
+              <svg key={i} className={`w-4 h-4 ${i < 4 ? 'fill-current' : ''}`} viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+              </svg>
+            ))}
+          </div>
+          <span className="text-xs text-gray-500 ml-1">(4.0)</span>
+        </div>
+        
+        {/* Price */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <span className="text-2xl font-bold text-gray-900">
+              ${Number(product.price).toFixed(2)}
+            </span>
+            {stock <= 5 && stock > 0 && (
+              <span className="text-xs text-orange-600 ml-2">Only {stock} left!</span>
+            )}
+          </div>
+        </div>
+        
+        {/* Action Buttons */}
+        <div className="mt-auto space-y-2">
+          <Button
+            onClick={handleAddToCart}
+            disabled={isOutOfStock || isAddingToCart}
+            variant={isOutOfStock ? 'ghost' : 'primary'}
+            className={`w-full ${isOutOfStock ? 'cursor-not-allowed bg-gray-100 text-gray-500' : ''}`}
+            size="sm"
+          >
+            {isAddingToCart ? 'Adding...' : isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+          </Button>
+          
+          {stock > 0 && (
+            <Link
+              to={`/product/${product.id}`}
+              className="block w-full text-center py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700"
+            >
+              View Details
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ProductCard;

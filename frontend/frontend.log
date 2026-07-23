@@ -1,0 +1,13 @@
+nohup: ignoring input
+
+> inventory-demand-frontend@1.0.0 dev
+> vite
+
+Port 5000 is in use, trying another one...
+Port 5001 is in use, trying another one...
+
+  VITE v6.4.2  ready in 259 ms
+
+  ➜  Local:   http://localhost:5002/
+  ➜  Network: use --host to expose
+Killed

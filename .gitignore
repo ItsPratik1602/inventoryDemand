@@ -1,0 +1,9 @@
+backend/node_modules
+frontend/node_modules
+backend/.env
+frontend/.env
+UI/frontend/.env
+backend/prisma/migrations
+backend/generated
+dist
+

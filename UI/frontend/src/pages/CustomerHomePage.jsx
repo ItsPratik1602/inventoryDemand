@@ -1,0 +1,249 @@
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import api from "../lib/api.js";
+import { useToast } from "../context/ToastContext.jsx";
+import Loader from "../components/Loader.jsx";
+import ProductCard from "../components/ProductCard.jsx";
+
+function CustomerHomePage() {
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchFeaturedProducts();
+    fetchCategories();
+  }, []);
+
+  const fetchFeaturedProducts = async () => {
+    try {
+      const response = await api.get("/public/products", {
+        params: {
+          page: 1,
+          limit: 8,
+          sortBy: "createdAt",
+          order: "desc"
+        }
+      });
+      const productsData = response.data?.data?.items || response.data?.items || [];
+      setFeaturedProducts(Array.isArray(productsData) ? productsData : []);
+    } catch (error) {
+      console.error("Failed to fetch featured products:", error);
+      showToast({ type: "error", message: "Failed to load products" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await api.get("/public/categories", {
+        params: { page: 1, limit: 10 }
+      });
+      const categoriesData = response.data?.data?.items || response.data?.items || [];
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+    } catch (error) {
+      console.error("Failed to fetch categories:", error);
+      showToast({ type: "error", message: "Failed to load categories" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (search.trim()) {
+      navigate(`/products?search=${encodeURIComponent(search.trim())}`);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader text="Loading products..." />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen">
+      {/* Hero Banner */}
+      <section className="relative bg-gradient-to-r from-blue-600 to-blue-800 text-white overflow-hidden">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center py-16 lg:py-24">
+            <div className="text-center lg:text-left">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+                Amazing Deals on
+                <span className="text-orange-400"> Premium Products</span>
+              </h1>
+              <p className="text-lg md:text-xl mb-8 text-blue-100 max-w-lg">
+                Discover thousands of products at unbeatable prices. Fast delivery, easy returns, and 24/7 customer support.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <Link 
+                  to="/products" 
+                  className="inline-block bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all transform hover:scale-105 shadow-lg"
+                >
+                  Start Shopping
+                </Link>
+                <Link 
+                  to="/products?category=Electronics" 
+                  className="inline-block bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all border border-white/30"
+                >
+                  View Deals
+                </Link>
+              </div>
+            </div>
+            <div className="relative">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 transform hover:scale-105 transition-transform">
+                  <div className="text-3xl mb-2">Laptops</div>
+                  <div className="text-sm text-blue-200">Up to 30% off</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 transform hover:scale-105 transition-transform">
+                  <div className="text-3xl mb-2">Phones</div>
+                  <div className="text-sm text-blue-200">Latest models</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 transform hover:scale-105 transition-transform">
+                  <div className="text-3xl mb-2">Fashion</div>
+                  <div className="text-sm text-blue-200">Trending styles</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 transform hover:scale-105 transition-transform">
+                  <div className="text-3xl mb-2">Books</div>
+                  <div className="text-sm text-blue-200">Best sellers</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Trust Badges */}
+      <section className="bg-white py-8 border-b border-gray-200">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div>
+              <div className="text-3xl mb-2">Free Delivery</div>
+              <div className="text-sm text-gray-600">On orders above $50</div>
+            </div>
+            <div>
+              <div className="text-3xl mb-2">24/7 Support</div>
+              <div className="text-sm text-gray-600">Dedicated support</div>
+            </div>
+            <div>
+              <div className="text-3xl mb-2">Easy Returns</div>
+              <div className="text-sm text-gray-600">30-day return policy</div>
+            </div>
+            <div>
+              <div className="text-3xl mb-2">Secure Payment</div>
+              <div className="text-sm text-gray-600">100% secure transactions</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Products */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Featured Products
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Handpicked products with the best deals and highest quality
+            </p>
+          </div>
+          
+          {featuredProducts.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="text-6xl text-gray-300 mb-4">No products found</div>
+              <p className="text-gray-500">Check back later for amazing deals!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {featuredProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+          
+          <div className="text-center mt-12">
+            <Link 
+              to="/products" 
+              className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
+            >
+              View All Products
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Categories Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Shop by Category
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Browse our wide range of categories to find exactly what you're looking for
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {categories.map((category) => (
+              <Link
+                key={category.id}
+                to={`/products?category=${encodeURIComponent(category.name)}`}
+                className="group relative overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              >
+                <div className="aspect-square bg-gradient-to-br from-blue-500 to-purple-600 p-8 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-20 h-20 mx-auto mb-4 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                      <span className="text-4xl font-bold text-white">
+                        {category.name.charAt(0)}
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-bold text-white group-hover:text-yellow-300 transition-colors">
+                      {category.name}
+                    </h3>
+                    <p className="text-sm text-white/80 mt-2">
+                      {category.description || 'Explore collection'}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Newsletter Section */}
+      <section className="py-16 bg-gradient-to-r from-orange-500 to-red-600 text-white">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Stay Updated
+          </h2>
+          <p className="text-lg mb-8 text-white/90">
+            Subscribe to our newsletter for exclusive deals and new product launches
+          </p>
+          <div className="max-w-md mx-auto flex gap-4">
+            <input
+              type="email"
+              placeholder="Enter your email"
+              className="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
+            />
+            <button className="bg-white text-orange-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+              Subscribe
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+export default CustomerHomePage;
